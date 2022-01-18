@@ -40,7 +40,7 @@ void adc_setup(void)
 void counter0setup (void)
 {
 
-			//Setting up counter on timer 0
+	//Setting up counter on timer 0
 	DDRD &= ~(1 << DDD4); //clear PD4
 	PORTD |= (1 << PORTD4);  // turn on pullup
 	TIMSK0|=(1<<TOIE0); //enable interrupt on overflow
@@ -49,20 +49,19 @@ void counter0setup (void)
 
 void timer2setup (void)
 {
-				//setting up timer on timer on timer 2
+	//setting up timer on timer on timer 2
 	TCCR2A|=(1<<WGM21); //CTC mode
 	OCR2A=16000000/1024*0.016-1; //will trigger every 0.016s
-	TIMSK2|=(1<<OCIE2A);
-	TCCR2B|=(1<<CS22)|(1<<CS21)|(1<<CS20);
+	TIMSK2|=(1<<OCIE2A); //enable interrupt on overflow of register OCR2A
+	TCCR2B|=(1<<CS22)|(1<<CS21)|(1<<CS20); //prescaler=1024
 }
 
 
 void pwm1setup(void)
 {
-				//Setting up PWM on timer 1
-	TCCR1A|=(1<<COM1A1)|(1<<WGM11);
-	//TIMSK1|=(1<<TOIE1);
-	ICR1=70;
-	OCR1A=0;
-	TCCR1B|=(1<<WGM13)|(1<<WGM12)|(1<<CS11);
+	//Setting up PWM on timer 1
+	TCCR1A|=(1<<COM1A1)|(1<<WGM11); //clear OCR1A on compare, noninverting mode
+	ICR1=70; //max value is 70, meaning frequency is 28.2kHz
+	OCR1A=0; //start with duty cycle=0
+	TCCR1B|=(1<<WGM13)|(1<<WGM12)|(1<<CS11); //enable fast PWM with ICR1 as top value, prescaler 8
 }
