@@ -67,7 +67,7 @@ int main (void)
 			LCD_set_cursor(0,0);
 			printf("Desired RPM: %.0f   ",desired_RPM);
 			LCD_set_cursor(0,2);
-			printf("Duty cycle: %.2f ",OCR1A/70.0);
+			printf("Duty cycle: %.2f ",OCR1A/OCR1A_MAX);
 			RPM_errorcorrection=PID_RPM(RPM_current, desired_RPM,timer2comp*0.016)*OCR1A_MAX/RPM_MAX; //8.7 max current;  70 OCR/8.7 A;
 	
 			if((OCR1A+round(RPM_errorcorrection))>OCR1A_MAX)
@@ -105,7 +105,6 @@ ISR(TIMER2_COMPA_vect) //overflows every 0.016s
 
 ISR(ADC_vect)
 {
-	adc_flag=0;
 	if(channel_f)			//channel flag=1-> ADC1 (A1)
 	{
 		desired_RPM_v=(ADC*VREF)/1024;
@@ -142,65 +141,3 @@ void PWM_start(void)
 	LCD_clear();
 }
 
-
-
-/*leftover code
-//TCCR0A|=(1<<COM0A1)|(1<<COM0A0)|(1<<WGM00)|(1<<WGM01); //set timer 0 to CTC
-//TCCR0B|=(1<<WGM02)|(1<<CS01)|(1<<CS02);
-//OCR0A=255;
-
-delay_ms(100);
-		cli();
-		dutycycle=(float)resulthigh/(resulthigh+resultlow);
-		printf("high=%d low=%d dutycycle=%f\n", resulthigh, resultlow, dutycycle);
-		sei();
-		_delay_ms(1);
-		OCR1A++;
-		if(OCR1A>34)
-		{
-			OCR1A=0;
-		}	
-		ISR(TIMER0_COMPA_vect)
-		{
-			cli();
-			if (!(PIND & 0x40))
-			{
-				countlow++;
-			}
-			else
-			{
-				counthigh++;
-			}
-			sei();
-		}
-
-		ISR(TIMER1_OVF_vect)
-		{
-			resultlow=countlow;
-			resulthigh=counthigh;
-			countlow=0;
-			counthigh=0;
-		}
-		
-		if(current>8.5) //make sure current does not exceed 8.5A
-		{
-			OCR1A=OCR1A-5; //if current exceeds, reduce pulse width
-			
-			//should print that current threshold has been exceeded
-		}
-		if(RPMflag==1)
-		{
-			
-			if(RPMcurrent<RPMtarget)
-			{
-				OCR1A++;
-			}
-			else if(RPMcurrent>RPMtarget)
-			{
-				OCR1A--;
-			}
-			
-			//print thing here
-			RPMflag=0;
-		}
-		*/
