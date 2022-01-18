@@ -29,13 +29,12 @@ void PWM_start(void);
 
 int main (void)
 {
-	/*uart_init();
-	io_redirect();*/
+	
 	i2c_init();
 	LCD_init();	
 	
 	DDRB =0xFF;
-	DDRD = 0x00; //I/O board:PD4…7 as outputs, for LEDs
+	DDRD = 0x00; 
 	DDRC= 0xF0;
 	PORTC= 0x30;
 	
@@ -54,7 +53,7 @@ int main (void)
 	
 	while(1)
 	{	
-		desired_RPM=((desired_RPM_v/VREF)*RPM_MAX);//-12.65; 
+		desired_RPM=((desired_RPM_v/VREF)*RPM_MAX); 
 		if(desired_RPM_v<=0.06) desired_RPM=0;
 		desired_RPM=round(desired_RPM);
 		
@@ -68,7 +67,7 @@ int main (void)
 			printf("Desired RPM: %.0f   ",desired_RPM);
 			LCD_set_cursor(0,2);
 			printf("Duty cycle: %.2f ",OCR1A/OCR1A_MAX);
-			RPM_errorcorrection=PID_RPM(RPM_current, desired_RPM,timer2comp*0.016)*OCR1A_MAX/RPM_MAX; //8.7 max current;  70 OCR/8.7 A;
+			RPM_errorcorrection=PID_RPM(RPM_current, desired_RPM,timer2comp*0.016)*OCR1A_MAX/RPM_MAX; //get a scale for new OCR to work with max RPM
 	
 			if((OCR1A+round(RPM_errorcorrection))>OCR1A_MAX)
 			{
