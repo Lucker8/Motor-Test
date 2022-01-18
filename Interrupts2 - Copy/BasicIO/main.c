@@ -29,19 +29,20 @@ void PWM_start(void);
 
 int main (void)
 {
-	
+	/*uart_init();
+	io_redirect();*/
 	i2c_init();
 	LCD_init();	
 	
-	DDRB =0xFF;
-	DDRD = 0x00; 
-	DDRC= 0xF0;
-	PORTC= 0x30;
+	DDRB =0xFF; //all pins in group B set to output
+	DDRD = 0x00; //all pins in group D set to input
+	DDRC= 0xF0; //PC 0-3 are inputs since they are ADC, rest are outputs for LCD
+	PORTC= 0x30; //enable pullups for I2C PC 4-5
 	
 	//setup
 	
-	initialise();
-	PWM_start();
+	initialise(); //initialise timers and ADC
+	PWM_start();  //slowly ramp up motor voltage with PWM
 	
 	//set a low start RPM for motor
 	
@@ -53,23 +54,25 @@ int main (void)
 	
 	while(1)
 	{	
-		desired_RPM=((desired_RPM_v/VREF)*RPM_MAX); 
-		if(desired_RPM_v<=0.06) desired_RPM=0;
-		desired_RPM=round(desired_RPM);
+		desired_RPM=((desired_RPM_v/VREF)*RPM_MAX); //calculate new desired RPM from measurement over potentiometer
+		if(desired_RPM_v<=0.06) desired_RPM=0; //if so low that it is measurement error, just set to 0
+		desired_RPM=round(desired_RPM); //Round up
 		
 											
 		if(RPMflag)
 		{
-			cli();
-			LCD_set_cursor(0,1);
+			cli(); //disable interrupts so prints are not interferred
+			LCD_set_cursor(0,1); //set print positions and print values
 			printf("Current RPM: %d",RPM_current);
 			LCD_set_cursor(0,0);
 			printf("Desired RPM: %.0f   ",desired_RPM);
 			LCD_set_cursor(0,2);
 			printf("Duty cycle: %.2f ",OCR1A/OCR1A_MAX);
-			RPM_errorcorrection=PID_RPM(RPM_current, desired_RPM,timer2comp*0.016)*OCR1A_MAX/RPM_MAX; //get a scale for new OCR to work with max RPM
-	
-			if((OCR1A+round(RPM_errorcorrection))>OCR1A_MAX)
+			//calculate PID error and scale to system with maximum pulsewidth divided by maximum RPM
+			RPM_errorcorrection=PID_RPM(RPM_current, desired_RPM,timer2comp*0.016)*OCR1A_MAX/RPM_MAX; 
+			//if for some reason error is greater or less than PWM max or minimum,
+			//just set it to max or minimum.
+			if((OCR1A+round(RPM_errorcorrection))>OCR1A_MAX) 
 			{
 				OCR1A=OCR1A_MAX;
 			}
@@ -79,8 +82,8 @@ int main (void)
 			}
 			else OCR1A+=round(RPM_errorcorrection);
 			
-			sei();
-			RPMflag=0;
+			sei(); //re-enable interrupts
+			RPMflag=0; //clear flag so PID controller will not run before another RPM measurement
 			
 		}	
 	}
@@ -88,15 +91,18 @@ int main (void)
 
 ISR(TIMER2_COMPA_vect) //overflows every 0.016s
 {
-	counttim2++;
+	counttim2++; //count overflows
 	
 	sei();
-	if(counttim2>=timer2comp) //62 overflows gives 0.992s
+	if(counttim2>=timer2comp) //if appropriate amount of time has passed, calculate RPM
 	{
-		RPM_current=(((256*RPMOVFL+TCNT0)/(timer2comp*0.016))*60)/2; //RPMoverflows+current count divided by time interval divided by 60 to go from RPS to RPM
+		//RPMoverflows+current count divided by time interval divided by 60 to go from RPS to RPM
+		//further divided by 2, because 2 pole pairs
+		RPM_current=(((256*RPMOVFL+TCNT0)/(timer2comp*0.016))*60)/2; 
+		//calculate new appropriate time based on current measure RPM
 		timer2comp=round(-0.0138*RPM_current+60.62);
-		RPMflag=1;
-		RPMOVFL=0;
+		RPMflag=1; //Since an RPM measurement has been made, PID controller can be run again
+		RPMOVFL=0; //reset all counters and timers (except PWM)
 		TCNT0=0;
 		counttim2=0;
 	}
@@ -123,7 +129,7 @@ ISR(ADC_vect)
 
 ISR(TIMER0_OVF_vect)
 {
-	RPMOVFL++;
+	RPMOVFL++; //keeps track of number of overflows of rotation counter
 }
 
 void PWM_start(void)
@@ -131,7 +137,7 @@ void PWM_start(void)
 	OCR1A=0;
 	LCD_set_cursor(0,0);
 	printf("I'm in setup");
-	for(int i=0;i<10;i++)
+	for(int i=0;i<10;i++) //slowly ramp up motor voltage
 	{
 		
 		OCR1A++;
